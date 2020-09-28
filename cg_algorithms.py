@@ -1,6 +1,3 @@
-import math
-
-
 def draw_line(p_list, algorithm):
 	"""绘制线段
 
@@ -22,9 +19,41 @@ def draw_line(p_list, algorithm):
 			for x in range(x0, x1 + 1):
 				result.append((x, int(y0 + k * (x - x0))))
 	elif algorithm == 'DDA':
-		pass
+		result.append((x0, y0))
+		length = max(abs(x1 - x0), abs(y1 - y0))
+		if length > 0:
+			dx = (x1 - x0) / length
+			dy = (y1 - y0) / length
+			x, y = x0, y0
+			for i in range(length):
+				x += dx
+				y += dy
+				result.append((int(x), int(y)))
+
 	elif algorithm == 'Bresenham':
-		pass
+		x, y = x0, y0
+		dx = abs(x1 - x0)
+		dy = abs(y1 - y0)
+		sx = 1 if (x1 > x0) else -1
+		sy = 1 if (y1 > y0) else -1
+		swap = (dy > dx)
+		if swap:
+			dx, dy = dy, dx
+		p = 2 * dy - dx
+		for i in range(dx):
+			result.append((int(x), int(y)))
+			if p > 0:
+				if swap:
+					x += sx
+				else:
+					y += sy
+				p -= 2 * dx
+			if swap:
+				y += sy
+			else:
+				x += sx
+			p += 2 * dy
+		result.append((int(x1), int(y1)))
 	return result
 
 
