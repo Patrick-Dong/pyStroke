@@ -1,5 +1,6 @@
 import math
 
+
 def draw_line(p_list, algorithm):
 	"""绘制线段
 
@@ -73,13 +74,60 @@ def draw_polygon(p_list, algorithm):
 	return result
 
 
+def newPt(result, cx, cy, x, y):
+	result.append((cx + x, cy + y))
+	result.append((cx + x, cy + y))
+
+
 def draw_ellipse(p_list):
 	"""绘制椭圆（采用中点圆生成算法）
 
 	:param p_list: (list of list of int: [[x0, y0], [x1, y1]]) 椭圆的矩形包围框左上角和右下角顶点坐标
 	:return: (list of list of int: [[x_0, y_0], [x_1, y_1], [x_2, y_2], ...]) 绘制结果的像素点坐标列表
 	"""
-	pass
+	result = []
+	x0, y0 = p_list[0]
+	x1, y1 = p_list[1]
+	cx = round((x0 + x1) / 2)
+	cy = round((y0 + y1) / 2)
+	rx = round((x1 - x0) / 2)
+	ry = round((y1 - y0) / 2)
+	flag = ry > rx
+	if flag:
+		rx, ry = ry, rx
+	rx2 = rx * rx
+	ry2 = ry * ry
+	x = 0
+	y = ry
+	point = ry2 - rx2 * ry + rx2 / 4 + ry ** 2
+	while ry2 * x < rx2 * y:
+		x = x + 1
+		if point < 0:
+			point = point + 2 * ry2 * x + ry2
+		if flag:
+			newPt(result, cx, cy, y, x)
+		else:
+			newPt(result, cx, cy, x, y)
+
+	point = rx2 * (y - 1) ** 2 - rx2 * ry2 + ry2 * (x + 0.5) * 2
+	while y >= 0:
+		if point < 0:
+			x = x + 1
+			point = point - 2 * rx2 * y + rx2 + 2 * ry2 * x
+		else:
+			point = point + rx2 - 2 * rx2 * y
+		if flag:
+			newPt(result, cx, cy, y, x)
+
+	return result
+
+
+def Bspline(xa, n, t):
+	b0 = (1 - t) ** 3
+	b1 = 3 * t ** 3 - 6 * t ** 2 + 4
+	b2 = 3 * t + 1 - 3 * t ** 2
+	b3 = t ** 3
+	return (b0 * xa[n] + b1 * xa[n + 1] + b2 * xa[n + 1] + b3 * xa[n + 3]) / 6
 
 
 def draw_curve(p_list, algorithm):
@@ -89,7 +137,43 @@ def draw_curve(p_list, algorithm):
 	:param algorithm: (string) 绘制使用的算法，包括'Bezier'和'B-spline'（三次均匀B样条曲线，曲线不必经过首末控制点）
 	:return: (list of list of int: [[x_0, y_0], [x_1, y_1], [x_2, y_2], ...]) 绘制结果的像素点坐标列表
 	"""
-	pass
+	result, points = [], []
+	x, y = [], []
+	n = len(p_list)
+	for i in range(n):
+		x.append(p_list[i][0])
+		y.append(p_list[i][1])
+		if i != 0:
+			result.extend(draw_line([[x[i], y[i]], [x[i - 1], y[i - 1]]], "DDA"))
+	if algorithm == "Bezier":
+		for u in range(0, 100):
+			u = u / 100
+			px, py = x, y
+			for i in range(1, n):
+				for j in range(n - i):
+					px[j] = (1 - u) * px[j] + u * px[j + 1]
+					py[j] = (1 - u) * py[j] + u * py[j + 1]
+			points.append((round(px[0]), round(py[0])))
+	elif algorithm == "B-spline":
+		xa = []
+		ya = []
+		for i in range(n):
+			xa += [p_list[i][0]]
+			ya += [p_list[i][1]]
+		xs = []
+		ys = []
+		for k in range(0, n - 1):
+			t = 0.0
+			step = 0.001
+			while t < 1.0:
+				xs += [Bspline(xa, k, t)]
+				ys += [Bspline(ya, k, t)]
+				t += step
+		for i in range(len(xs)):
+			points += [(round(xs[i]), round(ys[i]))]
+	for i in range(len(points) - 1):
+		result.extend(draw_line([points[i], points[i + 1]], "DDA"))
+	return result
 
 
 def translate(p_list, dx, dy):
@@ -114,7 +198,8 @@ def rotate(p_list, x, y, r):
 	"""
 	return list(
 		map(lambda p: [int(x + (p[0] - x) * math.cos(r * math.pi / 180) - (p[1] - y) * math.sin(r * math.pi / 180)),
-		               int(y + (p[0] - x) * math.sin(r * math.pi / 180) + (p[1] - y) * math.cos(r * math.pi / 180))], p_list))
+		               int(y + (p[0] - x) * math.sin(r * math.pi / 180) + (p[1] - y) * math.cos(r * math.pi / 180))],
+		    p_list))
 
 
 def scale(p_list, x, y, s):
@@ -140,4 +225,74 @@ def clip(p_list, x_min, y_min, x_max, y_max, algorithm):
 	:param algorithm: (string) 使用的裁剪算法，包括'Cohen-Sutherland'和'Liang-Barsky'
 	:return: (list of list of int: [[x_0, y_0], [x_1, y_1]]) 裁剪后线段的起点和终点坐标
 	"""
-	pass
+	result = []
+	x0, y0 = p_list[0]
+	x1, y1 = p_list[1]
+	if algorithm == 'Cohen-Sutherland':
+		LEFT = 1
+		RIGHT = 2
+		DOWN = 4
+		UP = 8
+
+		def encode(x, y):
+			LEFT, RIGHT, BOTTOM, TOP = 1, 2, 4, 8
+			c = 0
+			if x < x_min:
+				c = c | LEFT
+			if x > x_max:
+				c = c | RIGHT
+			if y < y_min:
+				c = c | BOTTOM
+			if y > y_max:
+				c = c | TOP
+			return c
+
+		while True:
+			code1 = encode(x0, y0)
+			code2 = encode(x1, y1)
+			if code1 & code2 == 0:
+				if code1 | code2 == 0:
+					return [[round(x0 + 0.5), round(y0 + 0.5)], [round(x1 + 0.5), round(y1 + 0.5)]]
+				else:
+					if code1 == 0:
+						x0, y0, x1, y1 = x1, y1, x0, y0
+						code1, code2 = code2, code1
+					if code1 & LEFT != 0:
+						x = x_min
+						if x0 == x1:
+							y = y0
+						else:
+							y = y0 + (y0 - y1) / (x0 - x1) * (x_min - x0)
+					elif code1 & RIGHT != 0:
+						x = x_max
+						if x0 == x1:
+							y = y0
+						else:
+							y = y0 + (y0 - y1) / (x0 - x1) * (x_max - x0)
+					elif code1 & DOWN != 0:
+						y = y_min
+						x = x0 + (x0 - x1) / (y0 - y1) * (y_min - y0)
+					elif code1 & UP != 0:
+						y = y_max
+						x = x0 + (x0 - x1) / (y0 - y1) * (y_max - y0)
+					x0 = x
+					y0 = y
+			else:
+				return []
+	elif algorithm == 'Liang-Barsky':
+		x0, y0 = p_list[0]
+		x1, y1 = p_list[1]
+		dx = x1 - x0
+		dy = y1 - y0
+		result = []
+		p = [-dx, dx, -dy, dy]
+		q = [x0 - x_min, x_max - x0, y0 - y_min, y_max - y0]
+		t1, t2 = 0.0, 1.0
+		for i in range(4):
+			if p[i] < 0:
+				t1 = max(t1, q[i] / p[i])
+			elif p[i] > 0:
+				t2 = min(t2, q[i] / p[i])
+			elif q[i] < 0:
+				result.append([0, 0])
+		return result
