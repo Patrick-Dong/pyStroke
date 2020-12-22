@@ -1,298 +1,461 @@
+#!/usr/bin/env python
+# -*- coding:utf-8 -*-
+
+# 本文件只允许依赖math库
 import math
 
+def sign(num):
+    if num > 0:
+        return 1
+    if num < 0:
+        return -1
+    return 0
 
 def draw_line(p_list, algorithm):
-	"""绘制线段
+    """绘制线段
 
-	:param p_list: (list of list of int: [[x0, y0], [x1, y1]]) 线段的起点和终点坐标
-	:param algorithm: (string) 绘制使用的算法，包括'DDA'和'Bresenham'，此处的'Naive'仅作为示例，测试时不会出现
-	:return: (list of list of int: [[x_0, y_0], [x_1, y_1], [x_2, y_2], ...]) 绘制结果的像素点坐标列表
-	"""
-	x0, y0 = p_list[0]
-	x1, y1 = p_list[1]
-	result = []
-	if algorithm == 'Naive':
-		if x0 == x1:
-			for y in range(y0, y1 + 1):
-				result.append((x0, y))
-		else:
-			if x0 > x1:
-				x0, y0, x1, y1 = x1, y1, x0, y0
-			k = (y1 - y0) / (x1 - x0)
-			for x in range(x0, x1 + 1):
-				result.append((x, int(y0 + k * (x - x0))))
-	elif algorithm == 'DDA':
-		result.append((x0, y0))
-		length = max(abs(x1 - x0), abs(y1 - y0))
-		if length > 0:
-			dx = (x1 - x0) / length
-			dy = (y1 - y0) / length
-			x, y = x0, y0
-			for i in range(length):
-				x += dx
-				y += dy
-				result.append((int(x), int(y)))
-
-	elif algorithm == 'Bresenham':
-		x, y = x0, y0
-		dx = abs(x1 - x0)
-		dy = abs(y1 - y0)
-		sx = 1 if (x1 > x0) else -1
-		sy = 1 if (y1 > y0) else -1
-		swap = (dy > dx)
-		if swap:
-			dx, dy = dy, dx
-		p = 2 * dy - dx
-		for i in range(dx):
-			result.append((int(x), int(y)))
-			if p > 0:
-				if swap:
-					x += sx
-				else:
-					y += sy
-				p -= 2 * dx
-			if swap:
-				y += sy
-			else:
-				x += sx
-			p += 2 * dy
-		result.append((int(x1), int(y1)))
-	return result
+    :param p_list: (list of list of int: [[x0, y0], [x1, y1]]) 线段的起点和终点坐标
+    :param algorithm: (string) 绘制使用的算法，包括'DDA'和'Bresenham'，此处的'Naive'仅作为示例，测试时不会出现
+    :return: (list of list of int: [[x_0, y_0], [x_1, y_1], [x_2, y_2], ...]) 绘制结果的像素点坐标列表
+    """
+    x0, y0 = p_list[0]
+    x1, y1 = p_list[1]
+    result = []
+    if algorithm == 'Naive':
+        if x0 == x1:
+            for y in range(min(y0, y1), max(y0, y1) + 1):
+                result.append((x0, y))
+        else:
+            if x0 > x1:
+                x0, y0, x1, y1 = x1, y1, x0, y0
+            k = (y1 - y0) / (x1 - x0)
+            for x in range(min(x0, x1), max(x0, x1) + 1):
+                result.append((x, round(y0 + k * (x - x0))))
+    elif algorithm == 'DDA':
+        length = max(abs(y1 - y0), abs(x1 - x0))
+        if length == 0: 
+            result.append((x0, y0))
+        else:
+            dx = (x1 - x0) / length
+            dy = (y1 - y0) / length
+            i = 0
+            x, y = x0, y0
+            while i <= length:
+                result.append((int(round(x)), int(round(y))))
+                x += dx
+                y += dy
+                i += 1
+    elif algorithm == 'Bresenham':
+        x = x0
+        y = y0
+        dx = int(abs(x1 - x0))
+        dy = int(abs(y1 - y0))
+        s1 = sign(x1 - x0)
+        s2 = sign(y1 - y0)
+        interchange = (dy > dx)
+        if interchange:
+            dx, dy = dy, dx
+        e = 2 * dy - dx
+        for i in range(dx):
+            result.append((int(x), int(y)))
+            if e > 0:
+                if interchange:
+                    x += s1
+                else:
+                    y += s2
+                e = e - 2 * dx
+            if interchange:
+                y = y + s2
+            else:
+                x = x + s1
+            e = e + 2 * dy
+        result.append((int(x1), int(y1)))
+    return result
 
 
 def draw_polygon(p_list, algorithm):
-	"""绘制多边形
+    """绘制多边形
 
-	:param p_list: (list of list of int: [[x0, y0], [x1, y1], [x2, y2], ...]) 多边形的顶点坐标列表
-	:param algorithm: (string) 绘制使用的算法，包括'DDA'和'Bresenham'
-	:return: (list of list of int: [[x_0, y_0], [x_1, y_1], [x_2, y_2], ...]) 绘制结果的像素点坐标列表
-	"""
-	result = []
-	for i in range(len(p_list)):
-		line = draw_line([p_list[i - 1], p_list[i]], algorithm)
-		result += line
-	return result
-
-
-def newPt(result, cx, cy, x, y):
-	result.append((cx + x, cy + y))
-	result.append((cx + x, cy + y))
+    :param p_list: (list of list of int: [[x0, y0], [x1, y1], [x2, y2], ...]) 多边形的顶点坐标列表
+    :param algorithm: (string) 绘制使用的算法，包括'DDA'和'Bresenham'
+    :return: (list of list of int: [[x_0, y_0], [x_1, y_1], [x_2, y_2], ...]) 绘制结果的像素点坐标列表
+    """
+    if len(p_list) == 2:
+        return draw_line([p_list[0], p_list[1]], algorithm)
+    result = []
+    for i in range(len(p_list)):
+        line = draw_line([p_list[i - 1], p_list[i]], algorithm)
+        result += line
+    return result
 
 
 def draw_ellipse(p_list):
-	"""绘制椭圆（采用中点圆生成算法）
+    """绘制椭圆（采用中点圆生成算法）
 
-	:param p_list: (list of list of int: [[x0, y0], [x1, y1]]) 椭圆的矩形包围框左上角和右下角顶点坐标
-	:return: (list of list of int: [[x_0, y_0], [x_1, y_1], [x_2, y_2], ...]) 绘制结果的像素点坐标列表
-	"""
-	result = []
-	x0, y0 = p_list[0]
-	x1, y1 = p_list[1]
-	cx = round((x0 + x1) / 2)
-	cy = round((y0 + y1) / 2)
-	rx = round((x1 - x0) / 2)
-	ry = round((y1 - y0) / 2)
-	flag = ry > rx
-	if flag:
-		rx, ry = ry, rx
-	rx2 = rx * rx
-	ry2 = ry * ry
-	x = 0
-	y = ry
-	point = ry2 - rx2 * ry + rx2 / 4 + ry ** 2
-	while ry2 * x < rx2 * y:
-		x = x + 1
-		if point < 0:
-			point = point + 2 * ry2 * x + ry2
-		if flag:
-			newPt(result, cx, cy, y, x)
-		else:
-			newPt(result, cx, cy, x, y)
+    :param p_list: (list of list of int: [[x0, y0], [x1, y1]]) 椭圆的矩形包围框左上角和右下角顶点坐标
+    :return: (list of list of int: [[x_0, y_0], [x_1, y_1], [x_2, y_2], ...]) 绘制结果的像素点坐标列表
+    """
+    x0, y0 = p_list[0]
+    x1, y1 = p_list[1]
+    a = abs(x1 - x0) / 2
+    b = abs(y1 - y0) / 2
 
-	point = rx2 * (y - 1) ** 2 - rx2 * ry2 + ry2 * (x + 0.5) * 2
-	while y >= 0:
-		if point < 0:
-			x = x + 1
-			point = point - 2 * rx2 * y + rx2 + 2 * ry2 * x
-		else:
-			point = point + rx2 - 2 * rx2 * y
-		if flag:
-			newPt(result, cx, cy, y, x)
+    isMirror = bool(b > a)
+    if isMirror:
+        a, b = b, a
 
-	return result
+    center = [round((x0 + x1)/2), round((y0 + y1)/2)]
+
+    result = []
+    x = round(a)
+    y = round(0)
+    taa = a * a
+    t2aa = 2 * taa
+    t4aa = 2 * t2aa
+    tbb = b * b
+    t2bb = 2 * tbb
+    t4bb = 2 * t2bb
+    t2abb = a * t2bb
+    t2bbx = t2bb * x
+    tx = x
+
+    d1 = t2bbx *  (x-1) + tbb/2 + t2aa * (1-tbb)
+    while t2bb * tx > t2aa * y:
+        result.append((x, y))
+        if d1 < 0:
+            y = y + 1
+            d1 = d1 + t4aa * y + t2aa
+            tx = x - 1
+        else:
+            x =  x - 1
+            y =  y + 1
+            d1 = d1 - t4bb * x + t4aa * y + t2aa
+            tx = x
+    
+    d2 = t2bb * (x*x +1) - t4bb*x+t2aa*(y*y+y-tbb) + taa/2
+    while x>=0:
+        result.append((x, y))
+        if d2 < 0:
+            x = x - 1
+            y = y + 1
+            d2 = d2 + t4aa * y - t4bb*x + t2bb
+        else:
+            x =  x - 1
+            d2 = d2 - t4bb * x + t2bb
+
+    if isMirror:
+        result = [(x[1], x[0]) for x in result]
+        
+    result += list(map(lambda x :(x[0],-x[1]), result))
+    result += list(map(lambda x :(-x[0],x[1]), result))
+    result = list(map(lambda x: (x[0] + center[0], x[1] + center[1]), result))
+    return result
 
 
-def Bspline(xa, n, t):
-	b0 = (1 - t) ** 3
-	b1 = 3 * t ** 3 - 6 * t ** 2 + 4
-	b2 = 3 * t + 1 - 3 * t ** 2
-	b3 = t ** 3
-	return (b0 * xa[n] + b1 * xa[n + 1] + b2 * xa[n + 1] + b3 * xa[n + 3]) / 6
+def addPoint(p1, p2, u): 
+    return ((1 - u) * p1[0] + u * p2[0], (1 - u) * p1[1] + u * p2[1])
+
+def bezier(p_list, r, i, u):
+    if r == 0:
+        return p_list[i]
+    else:
+        return addPoint(bezier(p_list, r - 1, i, u), bezier(p_list, r - 1, i + 1, u), u)
+    pass
+
+def bSpline(p, t):
+    n = p.__len__() - 1
+    m = 3 + n + 1
+    step = 1 / (m - 2 * 3)
+    u = [0, 0, 0] + [_u * step for _u in range(0, m - 2 * 3 + 1)] + [1, 1, 1]
+    for i in range(3, m - 3):
+        if u[i] <= t and t < u[i + 1]:
+            break
+    _t = (t - u[i]) / (u[i + 1] - u[i])
+    A1 = (1 - _t) * (1 - _t) * (1 - _t) / 6.0
+    A2 = (3 * _t * _t * _t - 6 * _t * _t + 4) / 6.0
+    A3 = (-3 * _t * _t * _t + 3 * _t * _t + 3 * _t + 1) / 6.0
+    A4 = _t * _t * _t / 6.0
+    return (A1 * p[i-3][0] + A2 * p[i-2][0] + A3 * p[i-1][0] + A4 * p[i][0],
+            A1 * p[i-3][1] + A2 * p[i-2][1] + A3 * p[i-1][1] + A4 * p[i][1])
 
 
-def draw_curve(p_list, algorithm):
-	"""绘制曲线
+def draw_curve(p_list: list, algorithm, isQuick = False):
+    """绘制曲线
 
-	:param p_list: (list of list of int: [[x0, y0], [x1, y1], [x2, y2], ...]) 曲线的控制点坐标列表
-	:param algorithm: (string) 绘制使用的算法，包括'Bezier'和'B-spline'（三次均匀B样条曲线，曲线不必经过首末控制点）
-	:return: (list of list of int: [[x_0, y_0], [x_1, y_1], [x_2, y_2], ...]) 绘制结果的像素点坐标列表
-	"""
-	result, points = [], []
-	x, y = [], []
-	n = len(p_list)
-	for i in range(n):
-		x.append(p_list[i][0])
-		y.append(p_list[i][1])
-		if i != 0:
-			result.extend(draw_line([[x[i], y[i]], [x[i - 1], y[i - 1]]], "DDA"))
-	if algorithm == "Bezier":
-		for u in range(0, 100):
-			u = u / 100
-			px, py = x, y
-			for i in range(1, n):
-				for j in range(n - i):
-					px[j] = (1 - u) * px[j] + u * px[j + 1]
-					py[j] = (1 - u) * py[j] + u * py[j + 1]
-			points.append((round(px[0]), round(py[0])))
-	elif algorithm == "B-spline":
-		xa = []
-		ya = []
-		for i in range(n):
-			xa += [p_list[i][0]]
-			ya += [p_list[i][1]]
-		xs = []
-		ys = []
-		for k in range(0, n - 1):
-			t = 0.0
-			step = 0.001
-			while t < 1.0:
-				xs += [Bspline(xa, k, t)]
-				ys += [Bspline(ya, k, t)]
-				t += step
-		for i in range(len(xs)):
-			points += [(round(xs[i]), round(ys[i]))]
-	for i in range(len(points) - 1):
-		result.extend(draw_line([points[i], points[i + 1]], "DDA"))
-	return result
+    :param p_list: (list of list of int: [[x0, y0], [x1, y1], [x2, y2], ...]) 曲线的控制点坐标列表
+    :param algorithm: (string) 绘制使用的算法，包括'Bezier'和'B-spline'（三次均匀B样条曲线，曲线不必经过首末控制点）
+    :return: (list of list of int: [[x_0, y_0], [x_1, y_1], [x_2, y_2], ...]) 绘制结果的像素点坐标列表
+    """
+    nPoints = 0
+    for i in range(len(p_list) - 1):
+        nPoints += max(abs(p_list[i][0] - p_list[i+1][0]), abs(p_list[i][1] - p_list[i+1][1]))
+    if isQuick: nPoints = int(nPoints / 10)
+    else: nPoints *= 2
+    # nPoints = len(p_list) * 20
+    # print(nPoints)
+    # if not isQuick: nPoints *= 20
+    if algorithm == 'Bezier':
+        n = p_list.__len__() - 1
+        result = [p_list[0]]
+        for i in range(1, nPoints):
+            result.append(bezier(p_list, n, 0, float(i) / (nPoints - 1)))
+        return list(set(map(lambda p: (round(p[0]), round(p[1])), result)))
+    elif algorithm == 'B-spline':
+        result = []
+        for i in range(0, nPoints):
+            t = i / nPoints
+            result.append(bSpline(p_list, t))
+        return list(set(map(lambda p: (round(p[0]), round(p[1])), result)))
+        pass
+    pass
 
 
 def translate(p_list, dx, dy):
-	"""平移变换
+    """平移变换
 
-	:param p_list: (list of list of int: [[x0, y0], [x1, y1], [x2, y2], ...]) 图元参数
-	:param dx: (int) 水平方向平移量
-	:param dy: (int) 垂直方向平移量
-	:return: (list of list of int: [[x_0, y_0], [x_1, y_1], [x_2, y_2], ...]) 变换后的图元参数
-	"""
-	return list(map(lambda p: [p[0] + dx, p[1] + dy], p_list))
+    :param p_list: (list of list of int: [[x0, y0], [x1, y1], [x2, y2], ...]) 图元参数
+    :param dx: (int) 水平方向平移量
+    :param dy: (int) 垂直方向平移量
+    :return: (list of list of int: [[x_0, y_0], [x_1, y_1], [x_2, y_2], ...]) 变换后的图元参数
+    """
+    return list(map(lambda p: (p[0] + dx, p[1] + dy), p_list))
 
 
 def rotate(p_list, x, y, r):
-	"""旋转变换（除椭圆外）
+    """旋转变换（除椭圆外）
 
-	:param p_list: (list of list of int: [[x0, y0], [x1, y1], [x2, y2], ...]) 图元参数
-	:param x: (int) 旋转中心x坐标
-	:param y: (int) 旋转中心y坐标
-	:param r: (int) 顺时针旋转角度（°）
-	:return: (list of list of int: [[x_0, y_0], [x_1, y_1], [x_2, y_2], ...]) 变换后的图元参数
-	"""
-	return list(
-		map(lambda p: [int(x + (p[0] - x) * math.cos(r * math.pi / 180) - (p[1] - y) * math.sin(r * math.pi / 180)),
-		               int(y + (p[0] - x) * math.sin(r * math.pi / 180) + (p[1] - y) * math.cos(r * math.pi / 180))],
-		    p_list))
+    :param p_list: (list of list of int: [[x0, y0], [x1, y1], [x2, y2], ...]) 图元参数
+    :param x: (int) 旋转中心x坐标
+    :param y: (int) 旋转中心y坐标
+    :param r: (int) 顺时针旋转角度（°）
+    :return: (list of list of int: [[x_0, y_0], [x_1, y_1], [x_2, y_2], ...]) 变换后的图元参数
+    """
+    rad = math.radians(r)
+    sin, cos = math.sin(rad), math.cos(rad)
+    return list(map(lambda p: (round(x + (p[0] - x)*cos -(p[1]-y)*sin), round(y + (p[0] - x)*sin +(p[1]-y)*cos)), p_list))
 
 
 def scale(p_list, x, y, s):
-	"""缩放变换
+    """缩放变换
 
-	:param p_list: (list of list of int: [[x0, y0], [x1, y1], [x2, y2], ...]) 图元参数
-	:param x: (int) 缩放中心x坐标
-	:param y: (int) 缩放中心y坐标
-	:param s: (float) 缩放倍数
-	:return: (list of list of int: [[x_0, y_0], [x_1, y_1], [x_2, y_2], ...]) 变换后的图元参数
-	"""
-	return list(map(lambda p: [int(p[0] * s + x * (1 - s)), int(p[1] * s + y * (1 - s))], p_list))
+    :param p_list: (list of list of int: [[x0, y0], [x1, y1], [x2, y2], ...]) 图元参数
+    :param x: (int) 缩放中心x坐标
+    :param y: (int) 缩放中心y坐标
+    :param s: (float) 缩放倍数
+    :return: (list of list of int: [[x_0, y_0], [x_1, y_1], [x_2, y_2], ...]) 变换后的图元参数
+    """
+    return list(map(lambda p: (round(p[0] * s + x * (1 - s)), round(p[1] * s + y * (1 - s))), p_list))
 
+def getPCode(x, y, window):
+    pCodeList = []
+    pCodeList.append(x < window[0])
+    pCodeList.append(x > window[1])
+    pCodeList.append(y < window[2])
+    pCodeList.append(y > window[3])
+    p = 0
+    for i in pCodeList:
+        p = (p << 1) | i
+    return p
+def getJoint(x1, y1, x2, y2, x = None, y = None):
+    if x != None:
+        if x1 == x2: 
+            return None
+        else:
+            return x, y1 + (x - x1)/(x2 - x1)*(y2 - y1)
+    if y != None:
+        if y1 == y2:
+            return None
+        else:
+            return x1 + (y - y1)/(y2 - y1)*(x2 - x1), y
+    return None
+def getFlag(pCode1, pCode2):
+    return ((pCode1 == 0) & (pCode2 == 0)) + (pCode1 & pCode2 == 0)
+
+def clipt(d, q, t_list): 
+    visible = True
+    if d == 0 and q < 0:
+        visible = False
+    elif d < 0:
+        t = float(q) / d
+        if t > t_list[1]:
+            visible = False
+        elif t > t_list[0]:
+            t_list[0] = t
+    elif d > 0:
+        t = float(q) / d
+        if t < t_list[0]:
+            visible = False
+        elif t < t_list[1]:
+            t_list[1] = t
+    return visible
 
 def clip(p_list, x_min, y_min, x_max, y_max, algorithm):
-	"""线段裁剪
+    """线段/多边形裁剪
 
-	:param p_list: (list of list of int: [[x0, y0], [x1, y1]]) 线段的起点和终点坐标
-	:param x_min: 裁剪窗口左上角x坐标
-	:param y_min: 裁剪窗口左上角y坐标
-	:param x_max: 裁剪窗口右下角x坐标
-	:param y_max: 裁剪窗口右下角y坐标
-	:param algorithm: (string) 使用的裁剪算法，包括'Cohen-Sutherland'和'Liang-Barsky'
-	:return: (list of list of int: [[x_0, y_0], [x_1, y_1]]) 裁剪后线段的起点和终点坐标
-	"""
-	result = []
-	x0, y0 = p_list[0]
-	x1, y1 = p_list[1]
-	if algorithm == 'Cohen-Sutherland':
-		LEFT = 1
-		RIGHT = 2
-		DOWN = 4
-		UP = 8
+    :param p_list: (list of list of int: [[x0, y0], [x1, y1]]) 线段的起点和终点坐标
+    :param x_min: 裁剪窗口左上角x坐标
+    :param y_min: 裁剪窗口左上角y坐标
+    :param x_max: 裁剪窗口右下角x坐标
+    :param y_max: 裁剪窗口右下角y坐标
+    :param algorithm: (string) 使用的裁剪算法，包括:
+        线段: 'Cohen-Sutherland'和'Liang-Barsky'
+        多边形: 'Sutherland-Hodgeman'
+    :return: (list of list of int: [[x_0, y_0], [x_1, y_1]]) 裁剪后线段的起点和终点坐标
+    """
+    x1, y1 = p_list[0]
+    x2, y2 = p_list[1]
+    if algorithm == 'Cohen-Sutherland':
+        window = (x_min, x_max, y_min, y_max)
+        pCode1 = getPCode(x1, y1, window)
+        pCode2 = getPCode(x2, y2, window)
+        vFlag = getFlag(pCode1, pCode2)
+        if vFlag == 2: 
+            return [(x1, y1), (x2, y2)]
+        elif vFlag == 1:
+            iFlag = 1
+            if x1 == x2:
+                iFlag = -1
+            elif y1 == y2:
+                iFlag = 0
+            while(vFlag == 1):
+                for i in range(1,5):
+                    if (pCode1 >> (4 - i)) != (pCode2 >> (4 - i)):
+                        if (pCode1 >> (4 - i)) == 0:
+                            x1, y1, x2, y2 = x2, y2, x1, y1
+                            pCode1, pCode2 = pCode2, pCode1
+                        if iFlag != -1 and i <= 2:
+                            y1 = (y2 - y1) / (x2 - x1) * (window[i - 1] - x1) + y1
+                            x1 = window[i - 1]
+                            pCode1 = getPCode(x1, y1, window)
+                        if iFlag != 0 and i > 2:
+                            if iFlag != -1:
+                                x1 = (x2 - x1) / (y2 - y1) * (window[i - 1] - y1) + x1
+                            y1 = window[i - 1]
+                            pCode1 = getPCode(x1, y1, window)
+                        vFlag = getFlag(pCode1, pCode2)
+                        if vFlag == 2:             
+                            return [(round(x1), round(y1)), (round(x2), round(y2))]
+                        elif vFlag == 0: 
+                            return []
+        else:
+            return []
+    elif algorithm == 'Liang-Barsky':
+        t = [float(0), float(1)]
+        deltax = float(x2 - x1)
+        if clipt(-deltax, x1 - x_min, t):
+            if clipt(deltax, x_max - x1, t):
+                deltay = float(y2 - y1)
+                if clipt(-deltay, y1 - y_min, t):
+                    if clipt(deltay, y_max - y1, t):
+                        if t[1] < 1:
+                            x2 = x1 + t[1] * deltax
+                            y2 = y1 + t[1] * deltay
+                        if t[0] > 0:
+                            x1 = x1 + t[0] * deltax
+                            y1 = y1 + t[0] * deltay
+                        return [(round(x1), round(y1)), (round(x2), round(y2))]
+        pass
+    elif algorithm == 'Sutherland-Hodgeman':
+        Pin = p_list
+        if not len(Pin):
+            return []
+        Pout = []
+        # 对左边界进行操作
+        visible = False #前一个点S的内外标志，用变量visible来标识：1表示在内侧，0表示在外侧。
+        S = Pin.pop(0)
+        if (S[0] >= x_min):
+            visible = True
+        Pin.append(S)
 
-		def encode(x, y):
-			LEFT, RIGHT, BOTTOM, TOP = 1, 2, 4, 8
-			c = 0
-			if x < x_min:
-				c = c | LEFT
-			if x > x_max:
-				c = c | RIGHT
-			if y < y_min:
-				c = c | BOTTOM
-			if y > y_max:
-				c = c | TOP
-			return c
+        for i in range(len(Pin)):
+            # 对于左边界，判断第i个顶点是否在边界内
+            P = Pin.pop(0)
+            #当前第i个顶点在边界内侧
+            if (P[0] >= x_min):
+                if not visible: #前一个点在外侧
+                    Pout.append((x_min,P[1] + (S[1] - P[1]) * (x_min - P[0]) / (S[0] - P[0])))
+                Pout.append(P)
+                visible = True #将标志置0,作为下一次循环的前一点标志
+            #当前第i个顶点在边界外侧
+            else:
+                if visible: #前一个点在内侧
+                    Pout.append((x_min,P[1] + (S[1] - P[1]) * (x_min - P[0]) / (S[0] - P[0])))
+                visible = False #将标志置0,作为下一次循环的前一点标志
+            S = P #将当前点作为下次循环的前一点
 
-		while True:
-			code1 = encode(x0, y0)
-			code2 = encode(x1, y1)
-			if code1 & code2 == 0:
-				if code1 | code2 == 0:
-					return [[round(x0 + 0.5), round(y0 + 0.5)], [round(x1 + 0.5), round(y1 + 0.5)]]
-				else:
-					if code1 == 0:
-						x0, y0, x1, y1 = x1, y1, x0, y0
-						code1, code2 = code2, code1
-					if code1 & LEFT != 0:
-						x = x_min
-						if x0 == x1:
-							y = y0
-						else:
-							y = y0 + (y0 - y1) / (x0 - x1) * (x_min - x0)
-					elif code1 & RIGHT != 0:
-						x = x_max
-						if x0 == x1:
-							y = y0
-						else:
-							y = y0 + (y0 - y1) / (x0 - x1) * (x_max - x0)
-					elif code1 & DOWN != 0:
-						y = y_min
-						x = x0 + (x0 - x1) / (y0 - y1) * (y_min - y0)
-					elif code1 & UP != 0:
-						y = y_max
-						x = x0 + (x0 - x1) / (y0 - y1) * (y_max - y0)
-					x0 = x
-					y0 = y
-			else:
-				return []
-	elif algorithm == 'Liang-Barsky':
-		x0, y0 = p_list[0]
-		x1, y1 = p_list[1]
-		dx = x1 - x0
-		dy = y1 - y0
-		result = []
-		p = [-dx, dx, -dy, dy]
-		q = [x0 - x_min, x_max - x0, y0 - y_min, y_max - y0]
-		t1, t2 = 0.0, 1.0
-		for i in range(4):
-			if p[i] < 0:
-				t1 = max(t1, q[i] / p[i])
-			elif p[i] > 0:
-				t2 = min(t2, q[i] / p[i])
-			elif q[i] < 0:
-				result.append([0, 0])
-		return result
+        # 对上边界进行操作
+        Pin = Pout
+        if not len(Pin):
+            return []
+        Pout = []
+
+        visible = False
+        S = Pin.pop(0)
+        if (S[1] >= y_min):
+            visible = True
+        Pin.append(S)
+
+        for i in range(len(Pin)):
+            P = Pin.pop(0)
+            if (P[1] >= y_min):
+                if not visible:
+                    Pout.append((P[0] + (S[0] - P[0]) * (y_min - P[1]) / (S[1] - P[1]), y_min))
+                Pout.append(P)
+                visible = True
+            else:
+                if visible:
+                    Pout.append((P[0] + (S[0] - P[0]) * (y_min - P[1]) / (S[1] - P[1]), y_min))
+                visible = False
+            S = P
+
+        # 对右边界进行操作
+        Pin = Pout
+        if not len(Pin):
+            return []
+        Pout = []
+
+        visible = False
+        S = Pin.pop(0)
+        if (S[0] <= x_max):
+            visible = True
+        Pin.append(S)
+
+        for i in range(len(Pin)):
+            P = Pin.pop(0)
+            if (P[0] <= x_max):
+                if not visible:
+                    Pout.append((x_max, P[1] + (S[1] - P[1]) * (x_max - P[0]) / (S[0] - P[0])))
+                Pout.append(P)
+                visible = True
+            else:
+                if visible:
+                    Pout.append((x_max, P[1] + (S[1] - P[1]) * (x_max - P[0]) / (S[0] - P[0])))
+                visible = False
+            S = P
+
+        # 对下边界进行操作
+        Pin = Pout
+        if not len(Pin):
+            return []
+        Pout = []
+
+        visible = False
+        S = Pin.pop(0)
+        if (S[1] <= y_max):
+            visible = True
+        Pin.append(S)
+
+        for i in range(len(Pin)):
+            P = Pin.pop(0)
+            if (P[1] <= y_max):
+                if not visible:
+                    Pout.append((P[0] + (S[0] - P[0]) * (y_max - P[1]) / (S[1] - P[1]), y_max))
+                Pout.append(P)
+                visible = True
+            else:
+                if visible:
+                    Pout.append((P[0] + (S[0] - P[0]) * (y_max - P[1]) / (S[1] - P[1]), y_max))
+                visible = False
+            S = P
+        return list(map(lambda p: (round(p[0]), round(p[1])), Pout))
+    return []
