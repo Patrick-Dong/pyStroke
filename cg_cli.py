@@ -1,8 +1,10 @@
-import sys
 import os
-import cg_algorithms as alg
+import sys
+
 import numpy as np
 from PIL import Image
+
+import cg_algorithms as alg
 
 if __name__ == '__main__':
 	input_file = sys.argv[1]
@@ -29,8 +31,6 @@ if __name__ == '__main__':
 				for item_type, p_list, algorithm, color in item_dict.values():
 					if item_type == 'line':
 						pixels = alg.draw_line(p_list, algorithm)
-						if len(pixels) == 0:
-							continue
 					elif item_type == 'polygon':
 						pixels = alg.draw_polygon(p_list, algorithm)
 					elif item_type == 'ellipse':
@@ -52,7 +52,7 @@ if __name__ == '__main__':
 				y1 = int(line[5])
 				algorithm = line[6]
 				item_dict[item_id] = ['line', [[x0, y0], [x1, y1]], algorithm, np.array(pen_color)]
-			elif line[0]=='drawPolygon':
+			elif line[0] == 'drawPolygon':
 				item_id = line[1]
 				p_list = []
 				for i in range(2, len(line) - 1, 2):
